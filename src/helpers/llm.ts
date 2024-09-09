@@ -86,7 +86,7 @@ export const getGemini = async function () {
       `Missing Gemini key. Use \`${commandName} config\` to set it.`
     );
   }
-  genai.configure(api_key=geminiKey);
+  genai.configure({ api_key: geminiKey });
   return genai;
 };
 
@@ -247,13 +247,16 @@ export const getSimpleCompletion = async function (options: {
 
   if (useGemini(model)) {
     const gemini = await getGemini();
-    const gm = genai.GenerativeModel(geminiModel)
-    const userMessage = ''.join([message.content as string for message in options['messages'] if message.role == 'user'])
-    process.stdout.write(formatMessage('\n'))
-    const response = await gm.generate_content(userMessage)
-    process.stderr.write(formatMessage(response.text))
-    process.stdout.write('\n')
-    return response.text
+    const gm = genai.GenerativeModel(geminiModel);
+    const userMessage = options['messages']
+      .filter((message) => message.role == 'user')
+      .map((message) => message.content)
+      .join('\n');
+    process.stdout.write(formatMessage('\n'));
+    const response = await gm.generate_content(userMessage);
+    process.stderr.write(formatMessage(response.text));
+    process.stdout.write('\n');
+    return response.text;
   }
 
   const openai = await getOpenAi();
@@ -304,13 +307,16 @@ export const getCompletion = async function (options: {
 
   if (useGemini(useModel)) {
     const gemini = await getGemini();
-    const gm = genai.GenerativeModel(geminiModel)
-    const userMessage = ''.join([message.content as string for message in options['messages'] if message.role == 'user'])
-    process.stdout.write(formatMessage('\n'))
-    const response = await gm.generate_content(userMessage)
-    process.stderr.write(formatMessage(response.text))
-    process.stdout.write('\n')
-    return response.text
+    const gm = genai.GenerativeModel(geminiModel);
+    const userMessage = options['messages']
+      .filter((message) => message.role == 'user')
+      .map((message) => message.content)
+      .join('\n');
+    process.stdout.write(formatMessage('\n'));
+    const response = await gm.generate_content(userMessage);
+    process.stderr.write(formatMessage(response.text));
+    process.stdout.write('\n');
+    return response.text;
   } else if (useAnthropic(useModel)) {
     process.stdout.write(formatMessage('\n'));
     const output = await getSimpleCompletion({
@@ -334,7 +340,7 @@ export const getCompletion = async function (options: {
   }
   const openai = await getOpenAi();
 
-  if (options.useAssistant ?? (USE_ASSISTANT and not endpoint)) {
+  if (options.useAssistant ?? (USE_ASSISTANT && !endpoint)) {
     let assistantId: string;
     const assistants = await openai.beta.assistants.list({
       limit: 100,
@@ -344,22 +350,24 @@ export const getCompletion = async function (options: {
         (assistant.metadata as any)?.[assistantIdentifierMetadataKey] ===
         assistantIdentifierMetadataValue
     );
-    if assistant:
+    if (assistant) {
       assistantId = assistant.id;
-    else:
-      const assistant = await openai.beta.assistants.create({
+    } else {
+      const newAssistant = await openai.beta.assistants.create({
         name: 'Micro Agent',
         model: useModel,
         metadata: {
           [assistantIdentifierMetadataKey]: assistantIdentifierMetadataValue,
         },
       });
-      assistantId = assistant.id;
+      assistantId = newAssistant.id;
+    }
     let threadId = options.options.threadId;
-    if not threadId:
+    if (!threadId) {
       const thread = await openai.beta.threads.create();
       threadId = thread.id;
       log.info(`Created thread: ${green(threadId)}`);
+    }
     options.options.threadId = threadId;
 
     process.stdout.write(formatMessage('\n'));
@@ -375,11 +383,11 @@ export const getCompletion = async function (options: {
           ) as RunCreateParams.AdditionalMessage[],
         })
         .on('textDelta', (textDelta) => {
-          const str = textDelta.value or '';
-          if str:
+          const str = textDelta.value || '';
+          if (str) {
             result += textDelta.value;
             process.stderr.write(formatMessage(str));
-          
+          }
         })
         .on('textDone', () => {
           process.stdout.write('\n');
@@ -398,10 +406,10 @@ export const getCompletion = async function (options: {
     process.stdout.write(formatMessage('\n'));
     for await (const chunk of completion) {
       const str = chunk.choices[0]?.delta.content;
-      if str:
+      if (str) {
         output += str;
         process.stderr.write(formatMessage(str));
-      
+      }
     }
     process.stdout.write('\n');
     captureLlmRecord(options.messages, output, mockLlmRecordFile);
