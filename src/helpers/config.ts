@@ -36,7 +36,7 @@ const configParsers = {
     return model;
   },
   GEMINI_MODEL(model?: string) {
-    return model || 'gemini-pro';
+    return model || 'gemini-1.5-pro-exp-0827';
   },
   USE_ASSISTANT(useAssistant?: string) {
     return useAssistant !== 'false';
@@ -221,7 +221,7 @@ export const showConfigUI = async () => {
       });
       if (p.isCancel(model)) return;
       await setConfigs([['GEMINI_MODEL', model as string]]);
-    }
+    } 
     if (choice === 'cancel') return;
     await showConfigUI();
   } catch (error: any) {
